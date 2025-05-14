@@ -3,6 +3,7 @@ from typing_extensions import List,Literal,TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langchain.chat_models import init_chat_model
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import AIMessage
 from langgraph.prebuilt import ToolNode
 import os
@@ -13,19 +14,18 @@ from langchain_core.tools import tool
 from speech_to_text import get_text_from_speech
 from pathlib import Path
 from openai import OpenAI
-import pygame.mixer
 import time
 
 load_dotenv()
 
-pygame.mixer.init()
+
 
 class State(TypedDict):
     messages:Annotated[list,add_messages]
 
 
-llm = init_chat_model("gpt-4.1-2025-04-14",model_provider="openai")
-
+# llm = ChatGoogleGenerativeAI(model=os.getenv("CHAT_MODEL_1"),google_api_key = os.getenv('GEMINI_API_KEY'))
+llm = init_chat_model("gpt-4.1-2025-04-14", model_provider="openai")
 @tool
 def run_system_commands(command,state:State,cwd=None):
     """
@@ -90,34 +90,15 @@ graph_builder.add_edge('chatbot',END)
 
 graph = graph_builder.compile()
 
-def text_to_speech(response):
-
-    client = OpenAI()
-    print(response,type(response))
-    speech_file_path = Path(__file__).parent / "speech.mp3"
-
-    with client.audio.speech.with_streaming_response.create(
-        model="gpt-4o-mini-tts",
-        voice="ash",
-        input=response,
-        instructions="Speak in a cheerful and positive tone.",
-    ) as response:
-        response.stream_to_file(speech_file_path)
-
-    pygame.mixer.music.load(str(speech_file_path))
-    pygame.mixer.music.play()
-
-    while pygame.mixer.music.get_busy():
-        time.sleep(0.1)
-    print("Audio playback finished.")
 
 def call_llm():
     while True:
-        start = "loop"
-        while start == "loop":
-            start = input("press any key to continue.........")  
+        # start = "loop"
+        # while start == "loop":
+        #     start = input("press any key to continue.........")  
 
-        text = get_text_from_speech()
+        # text = get_text_from_speech()
+        text = input(" >:.:<   ")
         input_val = [{'role':'user','content':text}]
 
         for event in graph.stream({'messages':input_val}):
@@ -126,10 +107,10 @@ def call_llm():
                 print('Assistant: ',value['messages'][-1].content)
                 print(type(final_output))
         
-        if final_output:
-            text_to_speech(final_output)
-        else:
-            print("Error: No valid response received from LLM")
+        # if final_output:
+            # text_to_speech(final_output)
+        # else:
+            # print("Error: No valid response received from LLM")
 
 
 call_llm()
